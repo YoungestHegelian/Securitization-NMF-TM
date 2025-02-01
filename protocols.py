@@ -59,6 +59,7 @@ def parse_xml(rsp_etree: ElementTree.Element):
     document = {}
     document["metadata"] = {}
     document["content"] = {}
+    document["index"] = {}
     root = rsp_etree
     vorspann = root[0]
     for item in vorspann:
@@ -66,7 +67,8 @@ def parse_xml(rsp_etree: ElementTree.Element):
             for i in item:
                 for j in i:
                     document["metadata"][j.tag] = unicodedata.normalize("NFKC",j.text)
-    
+        elif item.tag == "inhaltsverzeichnis":
+            pass
     sitzungsverlauf = root[1]
     for item in sitzungsverlauf:
         if item.tag == "tagesordnungspunkt":
