@@ -1,5 +1,6 @@
 import requests
 import datetime
+import re
 import json
 import unicodedata
 from xml.etree import ElementTree
@@ -118,9 +119,10 @@ def parse_index(index: ElementTree.Element):
         if iblock.tag == "ivz-block":
             for block in iblock[0:2]:
                 if block.tag == "ivz-block-titel":
-                    tops.append(unicodedata.normalize("NFKC",block.text))
+                    tops.append(unicodedata.normalize("NFKC",block.text.strip()))
                 for element in block:
-                    top_descs.append(unicodedata.normalize("NFKC",element.text))
+                    if element.text:
+                        top_descs.append(unicodedata.normalize("NFKC",element.text.strip()))
                     
     for t, td in zip(tops,top_descs):
         parsed_index[t] = td
@@ -128,6 +130,42 @@ def parse_index(index: ElementTree.Element):
     print("Parsed index")
     return parsed_index
 
+def collector(start_date: str):
+    protocols = {}
+    rsp_dict, ids = get_protocol_ids(start_date)
+    for document in rsp_dict["documents"]:
+     url = None
+     try:
+             url = document["fundstelle"]["xml_url"]
+     except KeyError:
+             print(f"Document {document["id"]} has no xml url")
+     if url:
+             rsp_xml = get_protocol_text_xml(url)
+             protocols[document["id"]] = parse_xml(rsp_xml)
+
+    return protocols
+
+def main():
+    start_date_valid = False
+    while start_date_valid == False:
+        start_date = input("Set start date for document retrieval (YYYY-MM-DD) : ")
+        regex = r"^\d{4}-\d{2}-\d{2}"
+        if re.match(regex,start_date):
+            start_date_valid = True
+        else:
+            print("WRONG DATE FORMAT")
+    protocols = collector(start_date)
+    storage_dir = "protocols/"
+    filename = f"BT_Protocols_{start_date}_{datetime.datetime.now().strftime(format="%Y-%m-%d")}.json"
+    path = storage_dir + filename
+    with open(path,"w") as file:
+        json.dump(protocols,file)
+    print(f"WROTE PROTOCOLS TO {path}")
+    
+    exit(0)
+
+if __name__ == "__main__":
+    main()
 """
 rsp_etree l1 branches:
     'id'
