@@ -73,7 +73,7 @@ def parse_xml(rsp_etree: ElementTree.Element):
     for item in sitzungsverlauf:
         if item.tag == "tagesordnungspunkt":
             document["content"][unicodedata.normalize("NFKC",item.attrib["top-id"])] = parse_top(item)
-
+    print(f"Parsed document {rsp_etree}")
     return document
 
 def parse_top(top: ElementTree.Element):
@@ -90,6 +90,7 @@ def parse_top(top: ElementTree.Element):
         elif item.tag == "p" and item.text:
             content[f"p_{p_ct}"] = unicodedata.normalize("NFKC",item.text)
             p_ct += 1
+    print("Parsed TOP")
     return content
 
 def parse_speech(speech: ElementTree.Element):
@@ -105,6 +106,7 @@ def parse_speech(speech: ElementTree.Element):
             p_ct += 1
         elif item.tag == "kommentar":
             content[f"comment_{cmt_ct}"] = unicodedata.normalize("NFKC",item.text)
+    print("Parsed speech")
     return content
 
 def parse_index(index: ElementTree.Element):
@@ -123,7 +125,7 @@ def parse_index(index: ElementTree.Element):
     for t, td in zip(tops,top_descs):
         parsed_index[t] = td
 
-    
+    print("Parsed index")
     return parsed_index
 
 """
