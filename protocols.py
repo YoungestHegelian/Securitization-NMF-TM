@@ -58,8 +58,8 @@ def get_protocol_text_xml(url: str):
 def parse_xml(rsp_etree: ElementTree.Element):
     document = {}
     document["metadata"] = {}
-    document["content"] = {}
     document["index"] = {}
+    document["content"] = {}
     root = rsp_etree
     vorspann = root[0]
     for item in vorspann:
