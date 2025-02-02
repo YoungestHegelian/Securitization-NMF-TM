@@ -67,15 +67,8 @@ def parse_xml(rsp_etree: ElementTree.Element):
             for i in item:
                 for j in i:
                     document["metadata"][j.tag] = unicodedata.normalize("NFKC",j.text)
-        #needs more work
         if item.tag == "inhaltsverzeichnis":
             document["index"] = parse_index(item)
-            #for iblock in item:
-            #    if iblock.tag == "ivz-block":
-            #        for block in iblock[0:2]:
-            #            for i in block:
-            #                if i.text and block.text != '\n                    ':
-            #                    document["index"][block.text] = i.text
     sitzungsverlauf = root[1]
     for item in sitzungsverlauf:
         if item.tag == "tagesordnungspunkt":
