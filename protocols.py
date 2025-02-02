@@ -145,10 +145,4 @@ rsp_etree l1 branches:
     'text'
     'titel'
     'datum'
-
-    for item in rsp_etree[1]:
-...     if item.tag == "tagesordnungspunkt":
-...             item.attrib["top-id"]
-...             for i in item:
-...                     i.tag ("p"=praesidentin?,"rede"=List("p","kommentar","name")), i.text
 """
