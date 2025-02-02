@@ -160,6 +160,7 @@ def main():
     path = storage_dir + filename
     with open(path,"w") as file:
         json.dump(protocols,file)
+    
     print(f"WROTE PROTOCOLS TO {path}")
     
     exit(0)
