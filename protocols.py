@@ -69,12 +69,13 @@ def parse_xml(rsp_etree: ElementTree.Element):
                     document["metadata"][j.tag] = unicodedata.normalize("NFKC",j.text)
         #needs more work
         if item.tag == "inhaltsverzeichnis":
-            for iblock in item:
-                if iblock.tag == "ivz-block":
-                    for block in iblock[0:2]:
-                        for i in block:
-                            if i.text and block.text != '\n                    ':
-                                document["index"][block.text] = i.text
+            document["index"] = parse_index(item)
+            #for iblock in item:
+            #    if iblock.tag == "ivz-block":
+            #        for block in iblock[0:2]:
+            #            for i in block:
+            #                if i.text and block.text != '\n                    ':
+            #                    document["index"][block.text] = i.text
     sitzungsverlauf = root[1]
     for item in sitzungsverlauf:
         if item.tag == "tagesordnungspunkt":
@@ -113,21 +114,26 @@ def parse_speech(speech: ElementTree.Element):
             content[f"comment_{cmt_ct}"] = unicodedata.normalize("NFKC",item.text)
     return content
 
-#def parse_paragraph(paragraph: ElementTree.Element):
-#    content = {}
-#    p_ct = 0
-#    for item in paragraph:
-#        if item.text:
-#            content[f"p_{p_ct}"] = unicodedata.normalize("NFKC",item.text)
-#            p_ct += 1
-#    return content
+def parse_index(index: ElementTree.Element):
+    parsed_index = {}
+    tops = []
+    top_descs = []
+    
+    for iblock in index:
+        if iblock.tag == "ivz-block":
+            for block in iblock[0:2]:
+                if block.tag == "ivz-block-titel":
+                    tops.append(unicodedata.normalize("NFKC",block.text))
+                for element in block:
+                    top_descs.append(unicodedata.normalize("NFKC",element.text))
+                    
+    for t, td in zip(tops,top_descs):
+        parsed_index[t] = td
 
+    
+    return parsed_index
 
 """
-rsp_dict
-    rsp_dict["documents"] (=list)
-
-
 rsp_etree l1 branches:
     'id'
     'dokumentart'
