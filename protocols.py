@@ -138,7 +138,7 @@ def collector(start_date: str):
      try:
              url = document["fundstelle"]["xml_url"]
      except KeyError:
-             print(f"Document {document["id"]} has no xml url")
+             print(f"Document {document['id']} has no xml url")
      if url:
              rsp_xml = get_protocol_text_xml(url)
              protocols[document["id"]] = parse_xml(rsp_xml)
@@ -156,7 +156,7 @@ def main():
             print("WRONG DATE FORMAT")
     protocols = collector(start_date)
     storage_dir = "protocols/"
-    filename = f"BT_Protocols_{start_date}_{datetime.datetime.now().strftime(format="%Y-%m-%d")}.json"
+    filename = f"BT_Protocols_{start_date}_{datetime.datetime.now().strftime(format='%Y-%m-%d')}.json"
     path = storage_dir + filename
     with open(path,"w") as file:
         json.dump(protocols,file)
