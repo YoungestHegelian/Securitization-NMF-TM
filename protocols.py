@@ -2,6 +2,7 @@ import requests
 import datetime
 import re
 import json
+import time
 import unicodedata
 from xml.etree import ElementTree
 
@@ -12,6 +13,7 @@ DIP_API_KEY="I9FKdCn.hbfefNWCY336dL6x62vfwNKpoN2RZ1gp21"
 # """get ids for protocols during the specified time"""
 # get_protocol_text(id)
 # """get full protocol text for protocol id"""
+
 
 def get_protocol_ids(start_date: str, end_date: str = datetime.datetime.now().strftime("%Y-%m-%d")):
     """
@@ -142,6 +144,7 @@ def collector(start_date: str):
      if url:
              rsp_xml = get_protocol_text_xml(url)
              protocols[document["id"]] = parse_xml(rsp_xml)
+             time.sleep(1)
 
     return protocols
 
