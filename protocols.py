@@ -159,14 +159,16 @@ def main():
             print("WRONG DATE FORMAT")
     protocols = collector(start_date)
     storage_dir = "protocols/"
-    filename = f"BT_Protocols_{start_date}_{datetime.datetime.now().strftime(format='%Y-%m-%d')}.json"
-    path = storage_dir + filename
-    with open(path,"w") as file:
-        json.dump(protocols,file)
+    for id in protocols.keys():
+        protocol = protocols[id]
+        filename = f"BT_Protocol_{id}.json"
+        path = storage_dir + filename
+        with open(path,"w") as file:
+            json.dump(protocol,file)
     
     print(f"WROTE PROTOCOLS TO {path}")
     
-    exit(0)
+    #exit(0)
 
 if __name__ == "__main__":
     main()
