@@ -171,7 +171,9 @@ def main():
     #exit(0)
 
 if __name__ == "__main__":
-    main()
+    q = input("Run main() ? y/n\n")
+    if q == "y":
+        main()
 
 """
 rsp_etree l1 branches:
