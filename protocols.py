@@ -101,14 +101,39 @@ def parse_speech(speech: ElementTree.Element):
     parse a single speech.still needs: speaker (incl. party affiliation)
     """
     content = {}
+    content["speaker"] = {}
+    content["speaker"]["rolle"] = None
+    content["speaker"]["fraktion"] = None
     p_ct = 0
     cmt_ct = 0
     for item in speech:
+        if len(item.attrib.keys()) > 0:
+            if item.attrib["klasse"] == "redner":
+                for element in item:
+                    if element.tag == "redner":
+                        for se in element:
+                            if se.tag == "name":
+                                for i in se:
+                                    if i.tag == "vorname":
+                                        content["speaker"]["first_name"] = i.text
+                                    elif i.tag == "nachname":
+                                        content["speaker"]["last_name"] = i.text
+                                    elif i.tag == "rolle":
+                                        for j in i:
+                                            if j.tag == "rolle_lang":
+                                                content["speaker"]["rolle"] = j.text
+                                    elif i.tag == "fraktion":
+                                        content["speaker"]["fraktion"] = i.text
+        #except KeyError:
+        #    continue
+
         if item.tag == "p" and item.text:
             content[f"p_{p_ct}"] = unicodedata.normalize("NFKC",item.text)
             p_ct += 1
         elif item.tag == "kommentar":
             content[f"comment_{cmt_ct}"] = unicodedata.normalize("NFKC",item.text)
+            #print(item.text)
+            cmt_ct += 1
     #print("Parsed speech")
     return content
 
