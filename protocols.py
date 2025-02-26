@@ -219,4 +219,15 @@ rsp_etree l1 branches:
     'text'
     'titel'
     'datum'
+
+for doc in documents:
+     for top in doc["content"].values():
+             for key,value in top.items():
+                     if type(top[key]) == dict:
+                             if top[key]["speaker"]["fraktion"]:
+                                     n1 = top[key]["speaker"]["first_name"]
+                                     n2 = top[key]["speaker"]["last_name"]
+                                     fr = top[key]["speaker"]["fraktion"]
+                                     print(f"{n1} {n2}\t\t{fr}")
+
 """
