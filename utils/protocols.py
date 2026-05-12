@@ -6,7 +6,7 @@ import time
 import unicodedata
 from xml.etree import ElementTree
 
-DIP_API_KEY="I9FKdCn.hbfefNWCY336dL6x62vfwNKpoN2RZ1gp21"
+DIP_API_KEY="OSOegLs.PR2lwJ1dwCeje9vTj7FPOt3hvpYKtwKkhw"
 
 # TO-DO:
 # get_protocol_ids(start_date, end_date)
@@ -27,10 +27,30 @@ def get_protocol_ids(start_date: str, end_date: str = datetime.datetime.now().st
     url = f"https://search.dip.bundestag.de/api/v1/plenarprotokoll?f.datum.start={start_date}&f.datum.end={end_date}&f.zuordnung=BT"
     response = requests.get(url,headers={"Authorization": auth_header})
     rsp_dict = response.json()
-    print("Found {} documents".format(rsp_dict["numFound"]))
+    if rsp_dict['cursor']:
+        search_cursor = rsp_dict['cursor']
     ids = {}
     for document in rsp_dict["documents"]:
-        ids[document["titel"]] = document["id"]
+            ids[document["titel"]] = document["id"]
+    
+    while search_cursor != None:
+        print("Sending additional request with cursor: ",search_cursor)
+        
+        response = requests.get(url + f"&cursor={search_cursor}",headers={"Authorization": auth_header})
+        rsp_docs = response.json()['documents']
+        if len(rsp_docs) > 0:
+            for document in rsp_docs:
+                rsp_dict['documents'].append(document)
+            #print([rsp_dict['documents']])
+        new_search_cursor = response.json()['cursor']
+        for document in rsp_dict["documents"]:
+            ids[document["titel"]] = document["id"]
+        if search_cursor == new_search_cursor:
+            break
+        search_cursor = new_search_cursor
+        time.sleep(1)
+
+    print("Found {} documents".format(rsp_dict["numFound"]))
     
     return rsp_dict, ids
 
@@ -45,7 +65,11 @@ def get_protocol_data_json(id: str):
 def get_protocol_data_xml(id: str):
     url = f"https://search.dip.bundestag.de/api/v1/plenarprotokoll-text/{id}?format=xml"
     auth_header = "ApiKey {}".format(DIP_API_KEY)
-    response = requests.get(url,headers={"Authorization":auth_header})
+    try:
+        response = requests.get(url,headers={"Authorization":auth_header})
+    except requests.exceptions.SSLError:
+        time.sleep(0.5)
+        response = requests.get(url,headers={"Authorization":auth_header})
     rsp_etree = ElementTree.fromstring(response.content)
 
     return rsp_etree
@@ -54,7 +78,11 @@ def get_protocol_text_xml(url: str):
     if url[-4:] != ".xml":
         raise TypeError
     else:
-        response = requests.get(url)
+        try:
+            response = requests.get(url)
+        except requests.exceptions.SSLError:
+            time.sleep(0.5)
+            response = requests.get(url)
         rsp_etree = ElementTree.fromstring(response.content)
     return rsp_etree
 
@@ -76,7 +104,7 @@ def parse_xml(rsp_etree: ElementTree.Element):
     for item in sitzungsverlauf:
         if item.tag == "tagesordnungspunkt":
             document["content"][unicodedata.normalize("NFKC",item.attrib["top-id"])] = parse_top(item)
-    print(f"Parsed document {rsp_etree}")
+    #print(f"Parsed document {rsp_etree}")
     return document
 
 def parse_top(top: ElementTree.Element):
@@ -156,21 +184,28 @@ def parse_index(index: ElementTree.Element):
 
     #print("Parsed index")
     return parsed_index
-
+ 
+from tqdm import tqdm
 def collector(start_date: str):
     protocols = {}
-    rsp_dict, ids = get_protocol_ids(start_date)
-    for document in rsp_dict["documents"]:
-     url = None
-     try:
-             url = document["fundstelle"]["xml_url"]
-     except KeyError:
-             print(f"Document {document['id']} has no xml url")
-     if url:
-             rsp_xml = get_protocol_text_xml(url)
-             protocols[document["id"]] = parse_xml(rsp_xml)
-             time.sleep(1)
-
+    rsp_dict, ids = get_protocol_ids(start_date,end_date="2025-03-18")
+    for document in tqdm(rsp_dict["documents"],desc="Creating Database "):
+        url = None
+        try:
+            url = document["fundstelle"]["xml_url"]
+        except KeyError:
+            print(f"Document {document['id']} has no xml url")
+        if url:
+            rsp_xml = get_protocol_text_xml(url)
+            protocol = parse_xml(rsp_xml)
+            protocols[document["id"]] = protocol
+            filename = f"BT_Protocol_{document['id']}.json"
+            storage_dir = "utils/protocols/"
+            path = storage_dir + filename
+            with open(path,"w") as file:
+                json.dump(protocol,file)
+            time.sleep(3)
+    print(f"WROTE PROTOCOLS TO {path}")
     return protocols
 
 def main():
@@ -182,16 +217,9 @@ def main():
             start_date_valid = True
         else:
             print("WRONG DATE FORMAT")
-    protocols = collector(start_date)
-    storage_dir = "protocols/"
-    for id in protocols.keys():
-        protocol = protocols[id]
-        filename = f"BT_Protocol_{id}.json"
-        path = storage_dir + filename
-        with open(path,"w") as file:
-            json.dump(protocol,file)
+    collector(start_date)
     
-    print(f"WROTE PROTOCOLS TO {path}")
+    
     
     #exit(0)
 

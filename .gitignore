@@ -1,2 +1,12 @@
-protocols/*
-utils/__pycache__/*
+*.png
+.venv/*
+*.txt
+*.pat
+__pycache__/*
+utils/protocols/*
+models/nmf/*.json
+*.bin
+*.npy
+*.model
+tgs_archive_scraper.py
+top_analysis.py
