@@ -10,3 +10,4 @@ models/nmf/*.json
 *.model
 tgs_archive_scraper.py
 top_analysis.py
+model_display.ipynb
