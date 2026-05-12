@@ -24,18 +24,11 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 raw_protocols.sort(key=lambda item: item.date)
 
-# bin into months 
-
-# collect necessary data differently
-# iterate over protocols: append to corpus, texts, doc_lenghts then unalloc protocol
-# then generate dictionary from texts
-# ↓ its copy not modify in place. try: get current protocol by list index and drop from imported object (which is a list of Protocol class)
-
 def generate_ldaseq_dataset(protocols: List[Protocol]):
     global raw_protocols
     corpus = []
     ppm = {}
-    #freq = defaultdict(int)
+    
     dictionary = corpora.Dictionary()
     for p in tqdm(protocols,desc="Preparing LDASEQ data"):
         # append vectors to corpus
@@ -48,13 +41,8 @@ def generate_ldaseq_dataset(protocols: List[Protocol]):
             ppm[my].append(p.id)
         except KeyError:
             ppm[my] = [p.id]
-        
         raw_protocols = raw_protocols[1:]
 
-    #for k in ppm.keys():
-    #    doc_lengths.append(ppm[k])
-
-    #dictionary = corpora.Dictionary(texts)
 
     return corpus, dictionary, ppm
 
@@ -63,19 +51,9 @@ def generate_ldaseq_dataset(protocols: List[Protocol]):
 def bin_by_month(protocols: List[Protocol]) -> dict:
     month_binned_protocols = {}
     for protocol in tqdm(protocols, desc="Timescale binning"):
-        
         # get month/year time bin
         date = protocol.date
         my = f"{date.month}/{date.year}"
-        
-            
-        # create dict with {my:all tokens from all documents from that month?}
-        # change parsing logic:
-        #   bin by month (or week?)
-        #   
-        # for (each) protocol in protocols:
-        #   month_binned_protocols[my] += gensim.Document(protocol)
-        #   ^ gensim.Corpus      
         try:
             month_binned_protocols[my].append([protocol.vectors])
         except KeyError:
@@ -83,46 +61,11 @@ def bin_by_month(protocols: List[Protocol]) -> dict:
 
     return month_binned_protocols
 
-#mbp = bin_by_month(protocols)
 
 
 #DTM (LDA)
 # gensim ldaseqmodel
 from gensim.models import ldaseqmodel
-
-# TO-DO:
-# get documents as gensim.Corpora
-# create time slices (list of n documents for time bin x: [num_docs_slice_a,...,num_docs_slice_n]. i.e [20,30,15,...])
-# instantiate model
-# requires: corpus=textwords, id2word=dictionary, time_slice=time_slice, num_topics=5
-# ldaseq = ldaseqmodel.LdaSeqModel()
-# done
-
-# Next TO-DOs:
-# initialize NMF model
-# generate initial factors using the Non-negative Double Singular Value Decomposition (NNDSVD) initialization approach (Boutsidis and Gallopoulos, 2008) [greene cross dtm pdf].
-# create & plot topic coherence (check the paper) and num(topics) in range(10,50?)
-# topic coherence measure: TC-W2V (topic coherence word2vec)
-
-####    ↓ v0.1 data processing finalization / preparation for ldaseq model. very likely not well optimised and thusly pc crashering     ####
-
-#from collections import defaultdict
-#from gensim import corpora
-#freq = defaultdict(int)
-#for p in protocols:
-#   for word in p.content.split():
-#       freq[word] += 1
-       
-#corpus = [p.vectors for p in protocols]
-#texts = [[token for token in proto.content.split() if freq[token] > 1]for proto in protocols]
-
-#dictionary = corpora.Dictionary(texts)
-#doc_lengths = []
-#for k in mbp.keys():
-#   doc_lengths.append(len(mbp[k]))
-
-####     end old version block      ####
-
 
 print("GENERATING LDASEQ DATASET")
 
@@ -157,42 +100,12 @@ def visualize_topic_distribution_over_time(model: ldaseqmodel.LdaSeqModel):
     data = []
     for d in range(0,num_docs,1):
         data.append(model.doc_topics(d))
-    #for i in doc_lengths:
-    #    c = 0
-    #    for t in num_topics:
-    #        avg = 0
+    
     df = pd.DataFrame(data)
     return df
 
 #NMF
 
-#NMF https://scikit-learn.org/stable/auto_examples/applications/plot_topics_extraction_with_nmf_lda.html
-# layer 1
-# for time_window in mpb:
-#   window_topic_model = nmf(tokens)
-# returns {window_topic_model[time_bin_a],...,window_topic_model[time_bin_n]}
-
-# Layer 2
-# topic_term_matrix = np.array/[](?)
-# for wtm in window_topic_models:
-#   top_t_terms = wtm.top_t_terms
-#   for topic,term in top_t_terms:
-#       topic_term_matrix.add(topic,term(s)[t])
-#   for topic in wtm:
-#   // select t top-ranked terms from row vector
-#       if topic in top_t_terms:
-#           topic_term_matrix.append(topic.row_vector)
-#       else:
-#           topic.row_vector = 0
-#
-# topic_term_matrix.stripna()
-# 
-# 
-# dynamic topics = nmf(topic_term_matrix)
-#   
-
-#prepare two-layer nmf
-# layer 1
 n_samples = 2000
 n_features = 1000
 n_components = 20
@@ -207,12 +120,7 @@ from preprocessing import stop_words
 def layer_one_nmf(protocols,max_df=0.9,min_df=0.2):
     print("Starting NMF")
     ts_nmf_models = []
-    #TO-DO
-    # bin protocols by quarter
-    # run 'for p in protocols' loop for each time bin
-    # collect relevant results for second layer nmf
-    # https://github.com/derekgreene/topic-model-tutorial/blob/master/2%20-%20NMF%20Topic%20Models.ipynb
-    # implement this instead of MiniBatchNMF
+    
     i = 0
     for qslice in doc_lengths:
 
@@ -221,22 +129,17 @@ def layer_one_nmf(protocols,max_df=0.9,min_df=0.2):
         tfidf_vectorizer = TfidfVectorizer(
             max_df=max_df, min_df=min_df, max_features=n_features, stop_words=list(stop_words)
         )
-
         tfidf = tfidf_vectorizer.fit_transform([p.content for p in protocols[i:qslice + i]])
-
         terms = list(tfidf_vectorizer.get_feature_names_out())
-
         nmf = NMF(
             n_components=n_components,
             init="random"
         )
         
-        # The W factor contains the document membership weights relative to each of the k topics. Each row corresponds to a single document, and each column correspond to a topic.
         W = nmf.fit_transform(tfidf)
-
-        # The H factor contains the term weights relative to each of the k topics. In this case, each row corresponds to a topic, and each column corresponds to a unique term in the corpus vocabulary.
+       
         H = nmf.components_
-        # generate W2V-model for coherence score
+       
         ts_nmf_models.append((W,H,terms))
         i = qslice + i
     print("Finished")
@@ -250,19 +153,16 @@ def get_descriptor(terms,H,topic_index,top):
     return top_terms
 
 def plot_top_term_weights(terms,H,topic_index,top):
-    # get the top terms and their weights
+    
     top_indices = np.argsort(H[topic_index,:])[::-1]
     top_terms = []
     top_weights = []
     for term_index in top_indices[0:top]:
         top_terms.append(terms[term_index])
         top_weights.append(H[topic_index,term_index])
-    # note we reverse the ordering for the plot
     top_terms.reverse()
     top_weights.reverse()
-    # create the plot
     fig = plt.figure(figsize=(13,8))
-    # add the horizontal bar chart
     ypos = np.arange(top)
     ax = plt.barh(ypos, top_weights, align="center", color="green",tick_label=top_terms)
     plt.xlabel("Term Weight",fontsize=14)
@@ -271,7 +171,6 @@ def plot_top_term_weights(terms,H,topic_index,top):
 def calculate_coherence(w2v_model,term_rankings):
     overall_coherence = 0.0
     for topic_index in range(len(term_rankings)):
-        # check each pair of terms
         pair_scores = []
         for pair in combinations( term_rankings[topic_index], 2 ):
             try:
@@ -279,10 +178,9 @@ def calculate_coherence(w2v_model,term_rankings):
             except KeyError:
                 similarity = 0
             pair_scores.append( similarity )
-        # get the mean for all pairs in this topic
         topic_score = sum(pair_scores) / len(pair_scores)
         overall_coherence += topic_score
-    # get the mean score across all topics
+   
     return overall_coherence / len(term_rankings)
 
 
